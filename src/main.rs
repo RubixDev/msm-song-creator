@@ -58,6 +58,10 @@ struct MSM {
     #[structopt(short = "s", long)]
     no_song: bool,
 
+    /// Set the speed of the song. Just like in-game this will also change the pitch
+    #[structopt(short = "S", long, default_value = "1.0")]
+    speed: f32,
+
     /// Show a list of all valid island numbers and their respective names
     #[structopt(short, long)]
     list_islands: bool,
@@ -91,7 +95,12 @@ fn main() {
     }
     let world = format!("{:02}", island);
 
+    if !(0.5..=2.0).contains(&msm.speed) {
+        eprintln!("\x1b[31mThe specified speed \x1b[1m{}\x1b[22m is not between 0.5 and 2", msm.speed);
+        std::process::exit(16);
+    }
+
     let song = parse::parse(format!("{}/world{}.mid", data_path, world), &world);
-    if !msm.no_song { write::write(&song, &world, msm.verbose, data_path, out_path); }
+    if !msm.no_song { write::write(&song, &world, msm.verbose, data_path, out_path, msm.speed); }
     if !msm.no_timeline { display::display(&song, &world); }
 }

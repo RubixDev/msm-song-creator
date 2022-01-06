@@ -20,7 +20,7 @@ fn resize_vec(vec: Vec<i16>, size: usize) -> Vec<i16> {
     }).collect();
 }
 
-pub fn write(data: &SongData, world: &String, verbose: bool, data_path: String, out_path: String) {
+pub fn write(data: &SongData, world: &String, verbose: bool, data_path: String, out_path: String, speed: f32) {
     let mut out: Vec<i16> = vec![0; (data.duration * 44100.0) as usize + 10];
 
     for track in data.tracks.iter() {
@@ -71,6 +71,10 @@ pub fn write(data: &SongData, world: &String, verbose: bool, data_path: String, 
         eprintln!("\x1b[31mError while creating output file: {}\x1b[0m", e);
         std::process::exit(11);
     });
+
+    if speed != 1.0 {
+        out = resize_vec(out.clone(), (out.len() as f32 / speed).round() as usize);
+    }
     for sample in out {
         writer.write_sample(sample).unwrap();
     }
