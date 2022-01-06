@@ -9,3 +9,5 @@ edition = "2021"
 midly = "0.5.2"
 hound = "3.4.0"
 regex = "1.5.4"
+serde_json = { version = "1.0.74", features = ["preserve_order"] }
+json_comments = "0.2.0"

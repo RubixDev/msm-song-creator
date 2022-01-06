@@ -6,14 +6,16 @@ use midly::{TrackEventKind, MetaMessage, MidiMessage, Timing, TrackEvent};
 pub struct SongData {
     pub island: String,
     pub duration: f64,
+    pub bpm: u8,
     pub tracks: Vec<Track>,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Track {
     pub name: String,
+    pub dipster: Option<u8>,
     pub parts: Vec<TrackPart>,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TrackPart {
     pub start: f64,
     pub duration: f64,
@@ -71,12 +73,13 @@ pub fn parse(filename: String, world: &String) -> SongData {
             let sound: u8 = if let TrackEventKind::Midi { channel: _, message: MidiMessage::NoteOn { key: k, vel: _ } } = event.kind {
                 k.as_int()
             } else { 255 };
-            let duration: u32 = if let TrackEventKind::Midi { channel: c, message: MidiMessage::NoteOn { key: k, vel: v } } = event.kind {
+            let duration: u32 = if let TrackEventKind::Midi { channel: _, message: MidiMessage::NoteOn { key: _, vel: _ } } = event.kind {
                 let mut index_delta: usize = 0;
                 let mut end_event: TrackEvent = event.clone();
                 let mut duration_time: u32 = 0;
-                while end_event.kind != (TrackEventKind::Midi { channel: c, message: MidiMessage::NoteOff { key: k, vel: v } }) {
+                loop {
                     duration_time += end_event.delta.as_int();
+                    if let TrackEventKind::Midi { channel: _, message: MidiMessage::NoteOff { key: _, vel: _ } } = end_event.kind { break; }
                     index_delta += 1;
                     if index + index_delta >= track.len() { break; }
                     end_event = track[index + index_delta];
@@ -114,6 +117,7 @@ pub fn parse(filename: String, world: &String) -> SongData {
     let mut result: SongData = SongData {
         island: world.clone(),
         duration: song_duration,
+        bpm: (beats_per_second * 60.0) as u8,
         tracks: vec![],
     };
     for track in tracks {
@@ -132,6 +136,7 @@ pub fn parse(filename: String, world: &String) -> SongData {
             } else {
                 track.name
             }.to_string(),
+            dipster: if is_dipster { track.name[1..3].parse::<u8>().ok() } else { None },
             parts: vec![],
         };
 

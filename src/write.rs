@@ -1,3 +1,4 @@
+use crate::ISLAND_NAMES;
 use hound;
 use crate::parse::SongData;
 
@@ -19,32 +20,7 @@ fn resize_vec(vec: Vec<i16>, size: usize) -> Vec<i16> {
     }).collect();
 }
 
-pub fn write(data: SongData, world: &String) {
-    let island_names = vec![
-        "",
-        "Plant Island",
-        "Cold Island",
-        "Air Island",
-        "Water Island",
-        "Earth Island",
-        "Gold Island",
-        "Ethereal Island",
-        "Shugabush Island",
-        "Tribal Island",
-        "Wublin Island",
-        "",
-        "Celestial Island",
-        "Fire Haven",
-        "Fire Oasis",
-        "Psychic Island",
-        "Faerie Island",
-        "Bone Island",
-        "Light Island",
-        "Magical Sanctum",
-        "",
-        "Seasonal Shanty",
-    ];
-
+pub fn write(data: &SongData, world: &String) {
     let mut out: Vec<i16> = vec![0; (data.duration * 44100.0) as usize + 10];
 
     for track in data.tracks.iter() {
@@ -82,7 +58,7 @@ pub fn write(data: SongData, world: &String) {
         sample_format: hound::SampleFormat::Int,
     };
     let mut writer = hound::WavWriter::create(
-        format!("songs/{}_{}.wav", world, island_names[world.parse::<usize>().unwrap()].replace(' ', "-")),
+        format!("songs/{}_{}.wav", world, ISLAND_NAMES[world.parse::<usize>().unwrap()].replace(' ', "-")),
         spec
     ).unwrap();
     for sample in out {
