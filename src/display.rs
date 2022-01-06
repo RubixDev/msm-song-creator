@@ -21,12 +21,17 @@ pub fn display(data: &SongData, world: &String) {
     let mut tracks = data.tracks.clone();
     tracks.sort_unstable_by_key(|it| {
         let monster_name = if it.dipster == None { it.name.clone() } else { format!("Q{:02}_Monster", it.dipster.unwrap()) };
-        monster_names.keys().position(|e| e == &monster_name).expect(format!("Key '{}' not found while sorting", it.name).as_str())
+        monster_names.keys().position(|e| e == &monster_name).unwrap_or_else(|| {
+            eprintln!("\x1b[31;1m{}\x1b[22m not found while sorting\x1b[0m", it.name);
+            std::process::exit(1);
+        })
     });
     for track in tracks.iter() {
         let monster_name = if track.dipster == None { track.name.clone() } else { format!("Q{:02}_Monster", track.dipster.unwrap()) };
-        let monster_data: Map<String, Value> = monster_names.get(&monster_name)
-            .expect(format!("Key '{}' not found", monster_name).as_str()).as_object().unwrap().clone();
+        let monster_data: Map<String, Value> = monster_names.get(&monster_name).unwrap_or_else(|| {
+            eprintln!("\x1b[31mNo name for \x1b[1m{}\x1b[22m found\x1b[0m", track.name);
+            std::process::exit(1);
+        }).as_object().unwrap().clone();
         print!("  {: >15}: ", monster_data["name"].as_str().unwrap());
 
         let mut track_chars: Vec<String> = vec!["".to_string(); track_length];

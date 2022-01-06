@@ -51,8 +51,14 @@ pub fn parse(filename: String, world: &String) -> SongData {
         ("AD Monster", "AD_Monster"),
     ]);
 
-    let file_bytes = std::fs::read(filename).unwrap();
-    let file_data = midly::Smf::parse(&file_bytes).unwrap();
+    let file_bytes = std::fs::read(&filename).unwrap_or_else(|e| {
+        eprintln!("\x1b[31mFile \x1b[1m{}\x1b[22m could not be opened: {}\x1b[0m", filename, e);
+        std::process::exit(2);
+    });
+    let file_data = midly::Smf::parse(&file_bytes).unwrap_or_else(|e| {
+        eprintln!("\x1b[31mError while parsing \x1b[1m{}\x1b[22m as MIDI: {}\x1b[0m", filename, e);
+        std::process::exit(3);
+    });
 
     let tracks: Vec<RawTrack> = file_data.tracks.iter().map(|track| {
         let name = track.iter()
@@ -64,7 +70,10 @@ pub fn parse(filename: String, world: &String) -> SongData {
                 }
             })
             .find(|it| it.len() != 0)
-            .unwrap();
+            .unwrap_or_else(|| {
+                eprintln!("\x1b[31mMalformed MIDI track: track name could not be found\x1b[0m");
+                std::process::exit(4);
+            });
 
         let mut start_time: u32 = 0;
         let notes: Vec<(u32, u8, u32)> = track.iter().enumerate().map(|(index, event)| {
@@ -94,14 +103,20 @@ pub fn parse(filename: String, world: &String) -> SongData {
 
     let ticks_per_beat = if let Timing::Metrical(tpb) = file_data.header.timing {
         tpb.as_int()
-    } else { panic!("Timing is not metrical") };
+    } else {
+        eprintln!("\x1b[31mTiming of MIDI file \x1b[1m{}\x1b[22m is not metrical", filename);
+        std::process::exit(5);
+    };
     let microseconds_per_beat = file_data.tracks.iter().map(|track| {
         track.iter().map(|event| {
             if let TrackEventKind::Meta(MetaMessage::Tempo(t)) = event.kind {
                 t.as_int()
             } else { 20_000_000 }
         }).find(|it| it != &20_000_000)
-    }).find(|it| it != &None).unwrap().unwrap();
+    }).find(|it| it != &None).unwrap_or_else(|| {
+        eprintln!("\x1b[31mMalformed MIDI file: tempo not specified\x1b[0m");
+        std::process::exit(6);
+    }).unwrap();
     let beats_per_second: f64 = 1000000f64 / microseconds_per_beat as f64;
     let ticks_per_second: f64 = beats_per_second * ticks_per_beat as f64;
 

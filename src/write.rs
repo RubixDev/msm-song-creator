@@ -32,7 +32,10 @@ pub fn write(data: &SongData, world: &String) {
             } else {
                 format!("data/{}-{}_{}.wav", data.island, track.name, part.sound.as_ref().unwrap())
             };
-            let mut segment_reader = hound::WavReader::open(segment_file).unwrap();
+            let mut segment_reader = hound::WavReader::open(&segment_file).unwrap_or_else(|e| {
+                eprintln!("\x1b[31mError while opening \x1b[1m{}\x1b[22m: {}\x1b[0m", segment_file, e);
+                std::process::exit(10);
+            });
             let mut segment: Vec<i16> = segment_reader.samples::<i16>().map(|it| it.unwrap()).collect();
             if segment_reader.spec().sample_rate != 44100 {
                 segment = resize_vec(segment, (44100.0 * (segment_reader.duration() as f64 / segment_reader.spec().sample_rate as f64)) as usize);
@@ -60,7 +63,10 @@ pub fn write(data: &SongData, world: &String) {
     let mut writer = hound::WavWriter::create(
         format!("songs/{}_{}.wav", world, ISLAND_NAMES[world.parse::<usize>().unwrap()].replace(' ', "-")),
         spec
-    ).unwrap();
+    ).unwrap_or_else(|e| {
+        eprintln!("\x1b[31mError while creating output file: {}\x1b[0m", e);
+        std::process::exit(11);
+    });
     for sample in out {
         writer.write_sample(sample).unwrap();
     }
