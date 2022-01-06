@@ -1,7 +1,10 @@
 [package]
-name = "msm-song-creator"
+name = "msm"
 version = "0.1.0"
 edition = "2021"
+authors = ["RubixDev"]
+license = "GPL-2.0-only"
+description = "Tool to create all My Singing Monsters songs and timelines from the game files"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -11,3 +14,4 @@ hound = "3.4.0"
 regex = "1.5.4"
 serde_json = { version = "1.0.74", features = ["preserve_order"] }
 json_comments = "0.2.0"
+structopt = "0.3.25"

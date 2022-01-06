@@ -5,6 +5,6 @@ for i in {1..21}; do
 
     island="$(printf "%02d" "$i")"
     echo -e "\x1b[36mIsland \x1b[1m$island\x1b[22m...\x1b[0m"
-    target/release/msm-song-creator "$island"
+    target/release/msm "$island" -o songs
     echo -e "\x1b[32m..done\x1b[0m"
 done
