@@ -36,9 +36,9 @@ pub const ISLAND_NAMES: [&str; 22] = [
 #[derive(Debug, StructOpt)]
 #[structopt(author)]
 struct MSM {
-    /// Island number. Required unless `--list-islands` or `--list-monsters` is used
+    /// Island number or name. Required unless `--list-islands` or `--list-monsters` is used
     #[structopt(required_unless("list-islands"), required_unless("list-monsters"))]
-    island: Option<u8>,
+    island: Option<String>,
 
     /// Path to MSM data/audio/music [default: "./data/"]
     #[structopt(short, long)]
@@ -124,11 +124,23 @@ fn main() {
         return;
     }
 
-    let island: u8 = msm.island.unwrap();
-    if island >= ISLAND_NAMES.len() as u8 || ISLAND_NAMES[island as usize] == "" {
-        eprintln!("\x1b[31mThe specified island \x1b[1m{}\x1b[22m is not valid. Use `msm --list-islands` for a list of valid islands\x1b[0m", island);
+    let raw_island: String = msm.island.unwrap();
+    let parsed_island = raw_island.parse::<u8>();
+    let island: u8 = if let Ok(num) = parsed_island {
+        if num >= ISLAND_NAMES.len() as u8 || ISLAND_NAMES[num as usize] == "" {
+            None
+        } else { Some(num) }
+    } else {
+        let pos = ISLAND_NAMES.iter().position(|it| it.to_owned() == raw_island);
+        if let Some(num) = pos {
+            if raw_island == "" {
+                None
+            } else { Some(num as u8) }
+        } else { None }
+    }.unwrap_or_else(|| {
+        eprintln!("\x1b[31mThe specified island \x1b[1m{}\x1b[22m is not valid. Use `msm --list-islands` for a list of valid islands\x1b[0m", raw_island);
         std::process::exit(15);
-    }
+    });
     let world = format!("{:02}", island);
 
     if !(0.5..=2.0).contains(&msm.tempo) {
