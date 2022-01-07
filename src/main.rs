@@ -89,7 +89,7 @@ fn main() {
     }).to_owned();
 
     let island: u8 = msm.island.unwrap();
-    if [11, 20].contains(&island) || island > 21 {
+    if island >= ISLAND_NAMES.len() as u8 || ISLAND_NAMES[island as usize] == "" {
         eprintln!("\x1b[31mThe specified island \x1b[1m{}\x1b[22m is not valid. Use `msm --list-islands` for a list of valid islands\x1b[0m", island);
         std::process::exit(15);
     }
