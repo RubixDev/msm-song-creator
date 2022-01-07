@@ -1,5 +1,15 @@
 use regex::Regex;
-use std::{fs::File, io::Read};
+use std::{fs::File, io::Read, collections::HashMap};
+use serde_json::{Map, Value};
+
+pub fn get_name_map(json: &Map<String, Value>) -> HashMap<String, String> {
+    let mut out: HashMap<String, String> = HashMap::new();
+    for (key, value) in json.iter() {
+        let name = value.as_object().unwrap()["name"].as_str().unwrap();
+        out.insert(name.to_owned(), key.clone());
+    }
+    return out;
+}
 
 pub fn read_list_file(path: String) -> Vec<String> {
     let mut file = File::open(&path).unwrap_or_else(|e| {
@@ -22,9 +32,14 @@ pub fn read_list_file(path: String) -> Vec<String> {
     return out;
 }
 
-pub fn parse_list(list: Vec<String>) -> Vec<Regex> {
+pub fn parse_list(list: Vec<String>, monster_names: &HashMap<String, String>) -> Vec<Regex> {
     let mut out: Vec<Regex> = vec![];
-    for (index, line) in list.iter().enumerate() {
+    for (index, line) in list.iter().map(|filter| {
+        let translated = monster_names.get(filter);
+        if let Some(name) = translated {
+            name
+        } else { filter }
+    }).enumerate() {
         out.push(Regex::new(format!("^{}$", line).as_str()).unwrap_or_else(|e| {
             eprintln!("\x1b[31mError while parsing exclude/include list at index \x1b[1m{}\x1b[22m: {}", index, e);
             std::process::exit(32);

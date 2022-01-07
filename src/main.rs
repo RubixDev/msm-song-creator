@@ -144,6 +144,7 @@ fn main() {
         eprintln!("\x1b[31mThe specified output path is not valid UTF-8\x1b[0m");
         std::process::exit(42);
     }).to_owned();
+
     let exclude_list_path: Option<String> = if let Some(path) = msm.exclude_list {
         Some(path.to_str().unwrap_or_else(|| {
             eprintln!("\x1b[31mThe specified path to the exclude list is not valid UTF-8\x1b[0m");
@@ -158,8 +159,9 @@ fn main() {
     } else { None };
     let raw_exclude_list = if let Some(path) = exclude_list_path { lists::read_list_file(path) } else { msm.exclude };
     let raw_include_list = if let Some(path) = include_list_path { lists::read_list_file(path) } else { msm.include };
-    let exclude_list = lists::parse_list(raw_exclude_list);
-    let include_list = lists::parse_list(raw_include_list);
+    let name_map = lists::get_name_map(&monster_names);
+    let exclude_list = lists::parse_list(raw_exclude_list, &name_map);
+    let include_list = lists::parse_list(raw_include_list, &name_map);
 
     let song = parse::parse(format!("{}/world{}.mid", data_path, world), &world, exclude_list, include_list);
     if !msm.no_song { write::write(&song, &world, msm.verbose, data_path, out_path, msm.tempo); }
