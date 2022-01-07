@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::str;
 use midly::{TrackEventKind, MetaMessage, MidiMessage, Timing, TrackEvent};
+use regex::Regex;
 
 #[derive(Debug)]
 pub struct SongData {
@@ -29,7 +30,7 @@ struct RawTrack<'a> {
     notes: Vec<(u32, u8, u32)>,
 }
 
-pub fn parse(filename: String, world: &String) -> SongData {
+pub fn parse(filename: String, world: &String, exclude_list: Vec<Regex>, include_list: Vec<Regex>) -> SongData {
     let replacements: HashMap<&str, &str> = HashMap::from([
         ("RareBox_Monster", "O_Monster"),
         ("sony_plant_Monster", "P02_Monster"),
@@ -137,7 +138,7 @@ pub fn parse(filename: String, world: &String) -> SongData {
     };
     for track in tracks {
         if world == "09" && track.name == "Bass" { continue; }
-        let is_dipster = regex::Regex::new(r"^Q\d\d_Monster$").unwrap().is_match(track.name);
+        let is_dipster = Regex::new(r"^Q\d\d_Monster$").unwrap().is_match(track.name);
 
         let mut track_data: Track = Track {
             name: if is_dipster {
@@ -154,6 +155,13 @@ pub fn parse(filename: String, world: &String) -> SongData {
             dipster: if is_dipster { track.name[1..3].parse::<u8>().ok() } else { None },
             parts: vec![],
         };
+
+        // Exclude/include
+        let monster_name = if track_data.dipster == None { track_data.name.clone() } else { format!("Q{:02}_Monster", track_data.dipster.unwrap()) };
+        if (include_list.len() > 0 && !include_list.iter().any(|it| it.is_match(&monster_name)))
+            || (exclude_list.len() > 0 && exclude_list.iter().any(|it| it.is_match(&monster_name))) {
+            continue;
+        }
 
         for note in track.notes {
             track_data.parts.push(TrackPart {

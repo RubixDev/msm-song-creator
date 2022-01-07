@@ -1,12 +1,7 @@
 use crate::{parse::SongData, ISLAND_NAMES};
 use serde_json::{Map, Value};
 
-pub fn display(data: &SongData, world: &String) {
-    let raw_monster_names: Value = serde_json::from_reader(
-        json_comments::StripComments::new(&include_bytes!("res/monster_names.json")[..])
-    ).unwrap();
-    let monster_names: Map<String, Value> = raw_monster_names.as_object().unwrap().clone();
-
+pub fn display(data: &SongData, world: &String, monster_names: Map<String, Value>) {
     println!(
         "\n\x1b[1m{}\x1b[0m - {}bpm {:02}:{:0>5.2}m",
         ISLAND_NAMES[world.parse::<usize>().unwrap()],

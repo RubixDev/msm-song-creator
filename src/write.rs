@@ -1,5 +1,4 @@
 use crate::ISLAND_NAMES;
-use hound;
 use lewton::inside_ogg::OggStreamReader;
 use crate::parse::SongData;
 
@@ -21,7 +20,7 @@ fn resize_vec(vec: Vec<i16>, size: usize) -> Vec<i16> {
     }).collect();
 }
 
-pub fn write(data: &SongData, world: &String, verbose: bool, data_path: String, out_path: String, speed: f32) {
+pub fn write(data: &SongData, world: &String, verbose: bool, data_path: String, out_path: String, tempo: f32) {
     let mut out: Vec<i16> = vec![0; (data.duration * 44100.0) as usize + 10];
 
     for track in data.tracks.iter() {
@@ -107,8 +106,8 @@ pub fn write(data: &SongData, world: &String, verbose: bool, data_path: String, 
         std::process::exit(11);
     });
 
-    if speed != 1.0 {
-        out = resize_vec(out.clone(), (out.len() as f32 / speed).round() as usize);
+    if tempo != 1.0 {
+        out = resize_vec(out.clone(), (out.len() as f32 / tempo).round() as usize);
     }
     for sample in out {
         writer.write_sample(sample).unwrap();
