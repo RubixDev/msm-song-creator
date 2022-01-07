@@ -1,5 +1,6 @@
 use crate::ISLAND_NAMES;
 use hound;
+use lewton::inside_ogg::OggStreamReader;
 use crate::parse::SongData;
 
 fn resize_vec(vec: Vec<i16>, size: usize) -> Vec<i16> {
@@ -28,19 +29,53 @@ pub fn write(data: &SongData, world: &String, verbose: bool, data_path: String, 
 
         for part in track.parts.iter() {
             if part.sound == None { continue; }
-            let segment_file = if track.name == "Q_Monster" {
-                format!("{}/01-Q_Monster_{}.wav", data_path, part.sound.as_ref().unwrap())
+
+            let mut segment: Vec<i16>;
+
+            let raw_segment_filename = if track.name == "Q_Monster" {
+                format!("{}/01-Q_Monster_{}", data_path, part.sound.as_ref().unwrap())
             } else {
-                format!("{}/{}-{}_{}.wav", data_path, data.island, track.name, part.sound.as_ref().unwrap())
+                format!("{}/{}-{}_{}", data_path, data.island, track.name, part.sound.as_ref().unwrap())
             };
-            let mut segment_reader = hound::WavReader::open(&segment_file).unwrap_or_else(|e| {
-                eprintln!("\x1b[31mError while opening \x1b[1m{}\x1b[22m: {}\x1b[0m", segment_file, e);
-                std::process::exit(10);
-            });
-            let mut segment: Vec<i16> = segment_reader.samples::<i16>().map(|it| it.unwrap()).collect();
-            if segment_reader.spec().sample_rate != 44100 {
-                segment = resize_vec(segment, (44100.0 * (segment_reader.duration() as f64 / segment_reader.spec().sample_rate as f64)) as usize);
+            if std::path::PathBuf::from(format!("{}.wav", raw_segment_filename)).exists() {
+                let segment_filename = format!("{}.wav", raw_segment_filename);
+                let mut segment_reader = hound::WavReader::open(&segment_filename).unwrap_or_else(|e| {
+                    eprintln!("\x1b[31mError while opening \x1b[1m{}\x1b[22m: {}\x1b[0m", segment_filename, e);
+                    std::process::exit(10);
+                });
+                segment = segment_reader.samples::<i16>().map(|it| it.unwrap()).collect();
+                if segment_reader.spec().sample_rate != 44100 {
+                    segment = resize_vec(
+                        segment,
+                        (44100.0 * (segment_reader.duration() as f64 / segment_reader.spec().sample_rate as f64)) as usize
+                    );
+                }
+            } else {
+                let segment_filename = format!("{}.ogg", raw_segment_filename);
+                let segment_file = std::fs::File::open(&segment_filename).unwrap_or_else(|e| {
+                    eprintln!("\x1b[31mError while opening \x1b[1m{}\x1b[22m: {}\x1b[0m", segment_filename, e);
+                    std::process::exit(10);
+                });
+                let mut segment_reader = OggStreamReader::new(segment_file).unwrap_or_else(|e| {
+                    eprintln!("\x1b[31mError while reading \x1b[1m{}\x1b[22m: {}\x1b[0m", segment_filename, e);
+                    std::process::exit(12);
+                });
+                segment = vec![];
+                while let Some(mut packet) = segment_reader.read_dec_packet().unwrap_or_else(|e| {
+                    eprintln!("\x1b[31mError while reading \x1b[1m{}\x1b[22m: {}\x1b[0m", segment_filename, e);
+                    std::process::exit(12);
+                }) {
+                    segment.append(&mut packet[0]);
+                }
+                if segment_reader.ident_hdr.audio_sample_rate != 44100 {
+                    let segment_len = segment.len();
+                    segment = resize_vec(
+                        segment,
+                        (44100.0 * (segment_len as f64 / segment_reader.ident_hdr.audio_sample_rate as f64)) as usize
+                    );
+                }
             }
+
             for (index, sample) in segment.iter().enumerate() {
                 let out_index = index + (44100f64 * part.start) as usize;
                 if index as f64 > 44100.0 * part.duration + 1.0 { /* println!("{}", track.name); */ break; }
