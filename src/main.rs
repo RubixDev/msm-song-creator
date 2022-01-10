@@ -99,6 +99,10 @@ struct MSM {
     /// Use `--list-monsters` for a list of all valid monster names.
     #[structopt(short = "I", long)]
     include_list: Option<PathBuf>,
+
+    /// How many times the song should be repeated
+    #[structopt(short, long, default_value = "1")]
+    repeat: u8,
 }
 
 fn main() {
@@ -147,6 +151,10 @@ fn main() {
         eprintln!("\x1b[31mThe specified tempo \x1b[1m{}\x1b[22m is not between 0.5 and 2", msm.tempo);
         std::process::exit(16);
     }
+    if !(1..=100).contains(&msm.repeat) {
+        eprintln!("\x1b[31mThe specified repeats \x1b[1m{}\x1b[22m is not between 1 and 100", msm.repeat);
+        std::process::exit(17);
+    }
 
     let data_path: String = msm.path.unwrap_or(PathBuf::from("data")).to_str().unwrap_or_else(|| {
         eprintln!("\x1b[31mThe specified data path is not valid UTF-8\x1b[0m");
@@ -176,6 +184,6 @@ fn main() {
     let include_list = lists::parse_list(raw_include_list, &name_map);
 
     let song = parse::parse(format!("{}/world{}.mid", data_path, world), &world, exclude_list, include_list);
-    if !msm.no_song { write::write(&song, &world, msm.verbose, data_path, out_path, msm.tempo); }
+    if !msm.no_song { write::write(&song, &world, msm.verbose, data_path, out_path, msm.tempo, msm.repeat); }
     if !msm.no_timeline { display::display(&song, &world, monster_names); }
 }

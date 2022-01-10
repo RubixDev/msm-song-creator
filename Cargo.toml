@@ -1,6 +1,6 @@
 [package]
 name = "msm"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["RubixDev"]
 license = "GPL-2.0-only"
