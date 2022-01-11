@@ -1,0 +1,66 @@
+msm 0.1.1
+RubixDev
+Tool to create all My Singing Monsters songs and timelines from the game files
+
+USAGE:
+    msm [FLAGS] [OPTIONS] <island>
+
+FLAGS:
+    -h, --help
+            Prints help information
+
+    -l, --list-islands
+            Show a list of all valid island numbers and their respective names
+
+    -L, --list-monsters
+            Show a list of all monsters and their names
+
+    -s, --no-song
+            Suppress creating song wav file
+
+    -t, --no-timeline
+            Suppress song timeline
+
+    -V, --version
+            Prints version information
+
+    -v, --verbose
+            Logs extra output while processing
+
+
+OPTIONS:
+    -x, --exclude <exclude>...
+            List of monsters to exclude from the song. RegEx supported
+
+            Use `--list-monsters` for a list of all valid monster names
+    -X, --exclude-list <exclude-list>
+            Path to a file with a list of monsters to exclude from the song. Overwrites names specified by `--exclude`
+
+            One monster per line, blank lines and lines starting with `#` are ignored. RegEx supported. Use `--list-
+            monsters` for a list of all valid monster names.
+    -i, --include <include>...
+            List of monsters to include in the song. RegEx supported
+
+            Takes higher precedence than `--exclude` and `--exclude-list`. Use `--list-monsters` for a list of all valid
+            monster names.
+    -I, --include-list <include-list>
+            Path to a file with a list of monsters to include in the song. Overwrites names specified by `--include`
+
+            Takes higher precedence than `--exclude` and `--exclude-list`. One monster per line, blank lines and lines
+            starting with `#` are ignored. RegEx supported. Use `--list-monsters` for a list of all valid monster names.
+    -o, --output <output>
+            Output folder [default: "./"]
+
+    -p, --path <path>
+            Path to MSM data/audio/music [default: "./data/"]
+
+    -r, --repeat <repeat>
+            How many times the song should be repeated [default: 1]
+
+    -T, --tempo <tempo>
+            Set the tempo of the song. Just like in-game this will also change the pitch [default: 1.0]
+
+
+ARGS:
+    <island>
+            Island number or name. Required unless `--list-islands` or `--list-monsters` is used
