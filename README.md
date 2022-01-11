@@ -59,7 +59,7 @@ First of all make sure to have Rust and `cargo` installed and working on your sy
 git clone https://github.com/RubixDev/msm-song-creator.git
 ```
 Once in the downloaded directory run `cargo build --release` in a terminal.
-The finished binary can then be found in `target/release/`.
+The finished binary can then be found under `target/release/`.
 
 ### Global installation on Linux
 If you are on Linux you can easily copy the obtained binary to your PATH with
@@ -107,7 +107,7 @@ The Android version (and likely the other mobile versions as well) use compresse
    2. On Linux you should already know how to open a terminal
 2. Run `./msm 1`
    1. The `1` here is the number of the island, in this case Plant Island. To get a list of all Islands use `./msm -l` or `./msm --list-islands`. Alternatively you can also specify the island name in quotation marks like this: `./msm "Plant Island"`, but make sure you type the name exactly right
-   2. When you put the game files somewhere else than a `data` folder next to the program, an error like `File data/world01.mid could not be opened`. In this case specify the path to that folder with the `-p` or `--path` flag manually, e.g. `./msm -p path/to/game/data 1`
+   2. When you put the game files somewhere else than in a `data` folder next to the program, an error like `File data/world01.mid could not be opened` will likely appear. In this case manually specify the path to the place you put them instead, by using the `-p` or `--path` flag, e.g. `./msm -p path/to/game/data 1`
    3. The outcome can be further customized with tempo, excluded/included monsters and number of repeats. For this refer to the [help section](#help) or use one of the help commands:
       1. `./msm -h` for short summaries
       2. `./msm --help` for more detailed explanations
