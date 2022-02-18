@@ -20,7 +20,7 @@ fn resize_vec(vec: Vec<i16>, size: usize) -> Vec<i16> {
     }).collect();
 }
 
-pub fn write(data: &SongData, world: &String, verbose: bool, data_path: String, out_path: String, tempo: f32, repeats: u8) {
+pub fn write(data: &SongData, world: &String, verbose: bool, data_path: &String, out_path: &String, tempo: f32, repeats: u8) {
     let mut out: Vec<i16> = vec![0; (data.duration * 44100.0) as usize + 5];
 
     for track in data.tracks.iter() {

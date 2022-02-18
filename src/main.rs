@@ -36,9 +36,9 @@ pub const ISLAND_NAMES: [&str; 22] = [
 #[derive(Debug, StructOpt)]
 #[structopt(author)]
 struct MSM {
-    /// Island number or name. Required unless `--list-islands` or `--list-monsters` is used
+    /// Island numbers or names. Required unless `--list-islands` or `--list-monsters` is used
     #[structopt(required_unless("list-islands"), required_unless("list-monsters"))]
-    island: Option<String>,
+    islands: Vec<String>,
 
     /// Path to MSM data/audio/music [default: "./data/"]
     #[structopt(short, long)]
@@ -128,25 +128,6 @@ fn main() {
         return;
     }
 
-    let raw_island: String = msm.island.unwrap();
-    let parsed_island = raw_island.parse::<u8>();
-    let island: u8 = if let Ok(num) = parsed_island {
-        if num >= ISLAND_NAMES.len() as u8 || ISLAND_NAMES[num as usize] == "" {
-            None
-        } else { Some(num) }
-    } else {
-        let pos = ISLAND_NAMES.iter().position(|it| it.to_owned() == raw_island);
-        if let Some(num) = pos {
-            if raw_island == "" {
-                None
-            } else { Some(num as u8) }
-        } else { None }
-    }.unwrap_or_else(|| {
-        eprintln!("\x1b[31mThe specified island \x1b[1m{}\x1b[22m is not valid. Use `msm --list-islands` for a list of valid islands\x1b[0m", raw_island);
-        std::process::exit(15);
-    });
-    let world = format!("{:02}", island);
-
     if !(0.5..=2.0).contains(&msm.tempo) {
         eprintln!("\x1b[31mThe specified tempo \x1b[1m{}\x1b[22m is not between 0.5 and 2", msm.tempo);
         std::process::exit(16);
@@ -183,7 +164,27 @@ fn main() {
     let exclude_list = lists::parse_list(raw_exclude_list, &name_map);
     let include_list = lists::parse_list(raw_include_list, &name_map);
 
-    let song = parse::parse(format!("{}/world{}.mid", data_path, world), &world, exclude_list, include_list);
-    if !msm.no_song { write::write(&song, &world, msm.verbose, data_path, out_path, msm.tempo, msm.repeat); }
-    if !msm.no_timeline { display::display(&song, &world, monster_names); }
+    for raw_island in msm.islands {
+        let parsed_island = raw_island.parse::<u8>();
+        let island: u8 = if let Ok(num) = parsed_island {
+            if num >= ISLAND_NAMES.len() as u8 || ISLAND_NAMES[num as usize] == "" {
+                None
+            } else { Some(num) }
+        } else {
+            let pos = ISLAND_NAMES.iter().position(|it| it.to_owned() == raw_island);
+            if let Some(num) = pos {
+                if raw_island == "" {
+                    None
+                } else { Some(num as u8) }
+            } else { None }
+        }.unwrap_or_else(|| {
+            eprintln!("\x1b[31mThe specified island \x1b[1m{}\x1b[22m is not valid. Use `msm --list-islands` for a list of valid islands\x1b[0m", raw_island);
+            std::process::exit(15);
+        });
+        let world = format!("{:02}", island);
+
+        let song = parse::parse(format!("{}/world{}.mid", &data_path, world), &world, &exclude_list, &include_list);
+        if !msm.no_song { write::write(&song, &world, msm.verbose, &data_path, &out_path, msm.tempo, msm.repeat); }
+        if !msm.no_timeline { display::display(&song, &world, &monster_names); }
+    }
 }

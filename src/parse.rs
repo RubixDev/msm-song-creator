@@ -30,7 +30,7 @@ struct RawTrack<'a> {
     notes: Vec<(u32, u8, u32)>,
 }
 
-pub fn parse(filename: String, world: &String, exclude_list: Vec<Regex>, include_list: Vec<Regex>) -> SongData {
+pub fn parse(filename: String, world: &String, exclude_list: &Vec<Regex>, include_list: &Vec<Regex>) -> SongData {
     let replacements: HashMap<&str, &str> = HashMap::from([
         ("RareBox_Monster", "O_Monster"),
         ("sony_plant_Monster", "P02_Monster"),
