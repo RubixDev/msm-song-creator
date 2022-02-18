@@ -402,6 +402,7 @@
     "S07_Monster": { "name": "Clavavera", "color": 124 },
     // "S08_Monster": { "name": "", "color": 15 },
     "S09_Monster": { "name": "Jam Boree", "color": 229 },
+    "S10_Monster": { "name": "Carillong", "color": 124 },
 
 
     "P01_Monster": { "name": "Yawstrich", "color": 196 },
