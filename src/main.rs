@@ -123,7 +123,7 @@ fn main() {
     if msm.list_monsters {
         println!("\x1b[1mList of monsters:\x1b[0m");
         for (key, data) in monster_names.iter() {
-            println!("  {: <15} : {}", key, data["name"].as_str().unwrap());
+            println!("  {: <15} -> {}", key, data["name"].as_str().unwrap());
         }
         return;
     }
