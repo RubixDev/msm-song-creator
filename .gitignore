@@ -1,5 +1,5 @@
-/target/
-/songs/
-/data/
+/target
+/songs
+/data
 
 /*.wav
