@@ -407,6 +407,8 @@
 
     "P01_Monster": { "name": "Yawstrich", "color": 196 },
     "P02_Monster": { "name": "G'joob", "color": 158 },
+    "P03_Monster": { "name": "Strombonin", "color": 116 },
+    "P05_Monster": { "name": "Hyehehe", "color": 5 },
 
 
     "Z01_Monster": { "name": "Shugabush", "color": 28 },
