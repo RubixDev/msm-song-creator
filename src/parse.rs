@@ -1,7 +1,7 @@
+use midly::{MetaMessage, MidiMessage, Timing, TrackEvent, TrackEventKind};
+use regex::Regex;
 use std::collections::HashMap;
 use std::str;
-use midly::{TrackEventKind, MetaMessage, MidiMessage, Timing, TrackEvent};
-use regex::Regex;
 
 #[derive(Debug)]
 pub struct SongData {
@@ -23,14 +23,18 @@ pub struct TrackPart {
     pub sound: Option<String>,
 }
 
-
 #[derive(Debug)]
 struct RawTrack<'a> {
     name: &'a str,
     notes: Vec<(u32, u8, u32)>,
 }
 
-pub fn parse(filename: String, world: &String, exclude_list: &Vec<Regex>, include_list: &Vec<Regex>) -> SongData {
+pub fn parse(
+    filename: String,
+    world: &String,
+    exclude_list: &Vec<Regex>,
+    include_list: &Vec<Regex>,
+) -> SongData {
     let replacements: HashMap<&str, &str> = HashMap::from([
         ("RareBox_Monster", "O_Monster"),
         ("sony_plant_Monster", "P02_Monster"),
@@ -53,81 +57,137 @@ pub fn parse(filename: String, world: &String, exclude_list: &Vec<Regex>, includ
     ]);
 
     let file_bytes = std::fs::read(&filename).unwrap_or_else(|e| {
-        eprintln!("\x1b[31mFile \x1b[1m{}\x1b[22m could not be opened: {}\x1b[0m", filename, e);
+        eprintln!(
+            "\x1b[31mFile \x1b[1m{}\x1b[22m could not be opened: {}\x1b[0m",
+            filename, e
+        );
         std::process::exit(2);
     });
     let file_data = midly::Smf::parse(&file_bytes).unwrap_or_else(|e| {
-        eprintln!("\x1b[31mError while parsing \x1b[1m{}\x1b[22m as MIDI: {}\x1b[0m", filename, e);
+        eprintln!(
+            "\x1b[31mError while parsing \x1b[1m{}\x1b[22m as MIDI: {}\x1b[0m",
+            filename, e
+        );
         std::process::exit(3);
     });
 
-    let tracks: Vec<RawTrack> = file_data.tracks.iter().map(|track| {
-        let name = track.iter()
-            .map(|it| {
-                if let TrackEventKind::Meta(MetaMessage::TrackName(m)) = it.kind {
-                    str::from_utf8(m).unwrap()
-                } else {
-                    ""
-                }
-            })
-            .find(|it| it.len() != 0)
-            .unwrap_or_else(|| {
-                eprintln!("\x1b[31mMalformed MIDI track: track name could not be found\x1b[0m");
-                std::process::exit(4);
-            });
+    let tracks: Vec<RawTrack> = file_data
+        .tracks
+        .iter()
+        .map(|track| {
+            let name = track
+                .iter()
+                .map(|it| {
+                    if let TrackEventKind::Meta(MetaMessage::TrackName(m)) = it.kind {
+                        str::from_utf8(m).unwrap()
+                    } else {
+                        ""
+                    }
+                })
+                .find(|it| !it.is_empty())
+                .unwrap_or_else(|| {
+                    eprintln!("\x1b[31mMalformed MIDI track: track name could not be found\x1b[0m");
+                    std::process::exit(4);
+                });
 
-        let mut start_time: u32 = 0;
-        let notes: Vec<(u32, u8, u32)> = track.iter().enumerate().map(|(index, event)| {
-            let delta: u32 = event.delta.as_int();
-            start_time += delta;
-            let sound: u8 = if let TrackEventKind::Midi { channel: _, message: MidiMessage::NoteOn { key: k, vel: _ } } = event.kind {
-                k.as_int()
-            } else { 255 };
-            let duration: u32 = if let TrackEventKind::Midi { channel: _, message: MidiMessage::NoteOn { key: _, vel: _ } } = event.kind {
-                let mut index_delta: usize = 0;
-                let mut end_event: TrackEvent = event.clone();
-                let mut duration_time: u32 = 0;
-                loop {
-                    duration_time += end_event.delta.as_int();
-                    if let TrackEventKind::Midi { channel: _, message: MidiMessage::NoteOff { key: _, vel: _ } } = end_event.kind { break; }
-                    index_delta += 1;
-                    if index + index_delta >= track.len() { break; }
-                    end_event = track[index + index_delta];
-                }
-                duration_time - delta
-            } else { 0 };
-            (start_time, sound, duration)
-        }).filter(|it| it.1 != 255).collect();
+            let mut start_time: u32 = 0;
+            let notes: Vec<(u32, u8, u32)> = track
+                .iter()
+                .enumerate()
+                .map(|(index, event)| {
+                    let delta: u32 = event.delta.as_int();
+                    start_time += delta;
+                    let sound: u8 = if let TrackEventKind::Midi {
+                        channel: _,
+                        message: MidiMessage::NoteOn { key: k, vel: _ },
+                    } = event.kind
+                    {
+                        k.as_int()
+                    } else {
+                        255
+                    };
+                    let duration: u32 = if let TrackEventKind::Midi {
+                        channel: _,
+                        message: MidiMessage::NoteOn { key: _, vel: _ },
+                    } = event.kind
+                    {
+                        let mut index_delta: usize = 0;
+                        let mut end_event: TrackEvent = *event;
+                        let mut duration_time: u32 = 0;
+                        loop {
+                            duration_time += end_event.delta.as_int();
+                            if let TrackEventKind::Midi {
+                                channel: _,
+                                message: MidiMessage::NoteOff { key: _, vel: _ },
+                            } = end_event.kind
+                            {
+                                break;
+                            }
+                            index_delta += 1;
+                            if index + index_delta >= track.len() {
+                                break;
+                            }
+                            end_event = track[index + index_delta];
+                        }
+                        duration_time - delta
+                    } else {
+                        0
+                    };
+                    (start_time, sound, duration)
+                })
+                .filter(|it| it.1 != 255)
+                .collect();
 
-        RawTrack { name, notes }
-    }).filter(|track| track.name.ends_with("Monster") || track.name == "Bass").collect();
+            RawTrack { name, notes }
+        })
+        .filter(|track| track.name.ends_with("Monster") || track.name == "Bass")
+        .collect();
 
     let ticks_per_beat = if let Timing::Metrical(tpb) = file_data.header.timing {
         tpb.as_int()
     } else {
-        eprintln!("\x1b[31mTiming of MIDI file \x1b[1m{}\x1b[22m is not metrical", filename);
+        eprintln!(
+            "\x1b[31mTiming of MIDI file \x1b[1m{}\x1b[22m is not metrical",
+            filename
+        );
         std::process::exit(5);
     };
-    let microseconds_per_beat = file_data.tracks.iter().map(|track| {
-        track.iter().map(|event| {
-            if let TrackEventKind::Meta(MetaMessage::Tempo(t)) = event.kind {
-                t.as_int()
-            } else { 20_000_000 }
-        }).find(|it| it != &20_000_000)
-    }).find(|it| it != &None).unwrap_or_else(|| {
-        eprintln!("\x1b[31mMalformed MIDI file: tempo not specified\x1b[0m");
-        std::process::exit(6);
-    }).unwrap();
+    let microseconds_per_beat = file_data
+        .tracks
+        .iter()
+        .map(|track| {
+            track
+                .iter()
+                .map(|event| {
+                    if let TrackEventKind::Meta(MetaMessage::Tempo(t)) = event.kind {
+                        t.as_int()
+                    } else {
+                        20_000_000
+                    }
+                })
+                .find(|it| it != &20_000_000)
+        })
+        .find(|it| it.is_some())
+        .unwrap_or_else(|| {
+            eprintln!("\x1b[31mMalformed MIDI file: tempo not specified\x1b[0m");
+            std::process::exit(6);
+        })
+        .unwrap();
     let beats_per_second: f64 = 1000000f64 / microseconds_per_beat as f64;
     let ticks_per_second: f64 = beats_per_second * ticks_per_beat as f64;
 
-    let song_duration_ticks = file_data.tracks.iter().map(|track| {
-        let mut start_time: u32 = 0;
-        for event in track.iter() {
-            start_time += event.delta.as_int();
-        }
-        start_time
-    }).max().unwrap();
+    let song_duration_ticks = file_data
+        .tracks
+        .iter()
+        .map(|track| {
+            let mut start_time: u32 = 0;
+            for event in track.iter() {
+                start_time += event.delta.as_int();
+            }
+            start_time
+        })
+        .max()
+        .unwrap();
     let song_duration = song_duration_ticks as f64 / ticks_per_second;
 
     let mut result: SongData = SongData {
@@ -137,7 +197,9 @@ pub fn parse(filename: String, world: &String, exclude_list: &Vec<Regex>, includ
         tracks: vec![],
     };
     for track in tracks {
-        if world == "09" && track.name == "Bass" { continue; }
+        if world == "09" && track.name == "Bass" {
+            continue;
+        }
         let is_dipster = Regex::new(r"^Q\d\d_Monster$").unwrap().is_match(track.name);
 
         let mut track_data: Track = Track {
@@ -151,15 +213,26 @@ pub fn parse(filename: String, world: &String, exclude_list: &Vec<Regex>, includ
                 replacements.get(track.name).unwrap()
             } else {
                 track.name
-            }.to_string(),
-            dipster: if is_dipster { track.name[1..3].parse::<u8>().ok() } else { None },
+            }
+            .to_string(),
+            dipster: if is_dipster {
+                track.name[1..3].parse::<u8>().ok()
+            } else {
+                None
+            },
             parts: vec![],
         };
 
         // Exclude/include
-        let monster_name = if track_data.dipster == None { track_data.name.clone() } else { format!("Q{:02}_Monster", track_data.dipster.unwrap()) };
-        if (include_list.len() > 0 && !include_list.iter().any(|it| it.is_match(&monster_name)))
-            || (exclude_list.len() > 0 && exclude_list.iter().any(|it| it.is_match(&monster_name))) {
+        let monster_name = if track_data.dipster.is_none() {
+            track_data.name.clone()
+        } else {
+            format!("Q{:02}_Monster", track_data.dipster.unwrap())
+        };
+        if (!include_list.is_empty() && !include_list.iter().any(|it| it.is_match(&monster_name)))
+            || (!exclude_list.is_empty()
+                && exclude_list.iter().any(|it| it.is_match(&monster_name)))
+        {
             continue;
         }
 
@@ -189,5 +262,5 @@ pub fn parse(filename: String, world: &String, exclude_list: &Vec<Regex>, includ
         result.tracks.push(track_data);
     }
 
-    return result;
+    result
 }

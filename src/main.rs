@@ -1,13 +1,13 @@
+use serde_json::{Map, Value};
 use std::path::PathBuf;
 use structopt::StructOpt;
-use serde_json::{Map, Value};
 
-mod parse;
-mod write;
 mod display;
 mod lists;
+mod parse;
+mod write;
 
-pub const ISLAND_NAMES: [&str; 22] = [
+pub const ISLAND_NAMES: [&str; 24] = [
     "",
     "Plant Island",
     "Cold Island",
@@ -30,12 +30,14 @@ pub const ISLAND_NAMES: [&str; 22] = [
     "Magical Sanctum",
     "",
     "Seasonal Shanty",
+    "Amber Island",
+    "Mythical Island",
 ];
 
 /// Tool to create all My Singing Monsters songs and timelines from the game files
 #[derive(Debug, StructOpt)]
 #[structopt(author)]
-struct MSM {
+struct Msm {
     /// Island numbers or names. Required unless `--list-islands` or `--list-monsters` is used
     #[structopt(required_unless("list-islands"), required_unless("list-monsters"))]
     islands: Vec<String>,
@@ -106,19 +108,22 @@ struct MSM {
 }
 
 fn main() {
-    let msm = MSM::from_args();
+    let msm = Msm::from_args();
 
     if msm.list_islands {
         println!("\x1b[1mList of valid islands:\x1b[0m");
         for (index, name) in ISLAND_NAMES.iter().enumerate() {
-            if name == &"" { continue; }
+            if name == &"" {
+                continue;
+            }
             println!("  {: >2}: {}", index, name);
         }
         return;
     }
-    let raw_monster_names: Value = serde_json::from_reader(
-        json_comments::StripComments::new(&include_bytes!("res/monster_names.json")[..])
-    ).unwrap();
+    let raw_monster_names: Value = serde_json::from_reader(json_comments::StripComments::new(
+        &include_bytes!("res/monster_names.json")[..],
+    ))
+    .unwrap();
     let monster_names: Map<String, Value> = raw_monster_names.as_object().unwrap().clone();
     if msm.list_monsters {
         println!("\x1b[1mList of monsters:\x1b[0m");
@@ -129,37 +134,61 @@ fn main() {
     }
 
     if !(0.5..=2.0).contains(&msm.tempo) {
-        eprintln!("\x1b[31mThe specified tempo \x1b[1m{}\x1b[22m is not between 0.5 and 2", msm.tempo);
+        eprintln!(
+            "\x1b[31mThe specified tempo \x1b[1m{}\x1b[22m is not between 0.5 and 2",
+            msm.tempo
+        );
         std::process::exit(16);
     }
     if !(1..=100).contains(&msm.repeat) {
-        eprintln!("\x1b[31mThe specified repeats \x1b[1m{}\x1b[22m is not between 1 and 100", msm.repeat);
+        eprintln!(
+            "\x1b[31mThe specified repeats \x1b[1m{}\x1b[22m is not between 1 and 100",
+            msm.repeat
+        );
         std::process::exit(17);
     }
 
-    let data_path: String = msm.path.unwrap_or(PathBuf::from("data")).to_str().unwrap_or_else(|| {
-        eprintln!("\x1b[31mThe specified data path is not valid UTF-8\x1b[0m");
-        std::process::exit(42);
-    }).to_owned();
-    let out_path: String = msm.output.unwrap_or(PathBuf::from(".")).to_str().unwrap_or_else(|| {
-        eprintln!("\x1b[31mThe specified output path is not valid UTF-8\x1b[0m");
-        std::process::exit(42);
-    }).to_owned();
+    let data_path: String = msm
+        .path
+        .unwrap_or(PathBuf::from("data"))
+        .to_str()
+        .unwrap_or_else(|| {
+            eprintln!("\x1b[31mThe specified data path is not valid UTF-8\x1b[0m");
+            std::process::exit(42);
+        })
+        .to_owned();
+    let out_path: String = msm
+        .output
+        .unwrap_or(PathBuf::from("."))
+        .to_str()
+        .unwrap_or_else(|| {
+            eprintln!("\x1b[31mThe specified output path is not valid UTF-8\x1b[0m");
+            std::process::exit(42);
+        })
+        .to_owned();
 
-    let exclude_list_path: Option<String> = if let Some(path) = msm.exclude_list {
-        Some(path.to_str().unwrap_or_else(|| {
-            eprintln!("\x1b[31mThe specified path to the exclude list is not valid UTF-8\x1b[0m");
-            std::process::exit(42);
-        }).to_owned())
-    } else { None };
-    let include_list_path: Option<String> = if let Some(path) = msm.include_list {
-        Some(path.to_str().unwrap_or_else(|| {
-            eprintln!("\x1b[31mThe specified path to the include list is not valid UTF-8\x1b[0m");
-            std::process::exit(42);
-        }).to_owned())
-    } else { None };
-    let raw_exclude_list = if let Some(path) = exclude_list_path { lists::read_list_file(path) } else { msm.exclude };
-    let raw_include_list = if let Some(path) = include_list_path { lists::read_list_file(path) } else { msm.include };
+    let exclude_list_path: Option<String> = msm.exclude_list.map(|path| {
+        path.to_str()
+            .unwrap_or_else(|| {
+                eprintln!(
+                    "\x1b[31mThe specified path to the exclude list is not valid UTF-8\x1b[0m"
+                );
+                std::process::exit(42);
+            })
+            .to_owned()
+    });
+    let include_list_path: Option<String> = msm.include_list.map(|path| {
+        path.to_str()
+            .unwrap_or_else(|| {
+                eprintln!(
+                    "\x1b[31mThe specified path to the include list is not valid UTF-8\x1b[0m"
+                );
+                std::process::exit(42);
+            })
+            .to_owned()
+    });
+    let raw_exclude_list = exclude_list_path.map_or(msm.exclude, lists::read_list_file);
+    let raw_include_list = include_list_path.map_or(msm.include, lists::read_list_file);
     let name_map = lists::get_name_map(&monster_names);
     let exclude_list = lists::parse_list(raw_exclude_list, &name_map);
     let include_list = lists::parse_list(raw_include_list, &name_map);
@@ -167,13 +196,13 @@ fn main() {
     for raw_island in msm.islands {
         let parsed_island = raw_island.parse::<u8>();
         let island: u8 = if let Ok(num) = parsed_island {
-            if num >= ISLAND_NAMES.len() as u8 || ISLAND_NAMES[num as usize] == "" {
+            if num >= ISLAND_NAMES.len() as u8 || ISLAND_NAMES[num as usize].is_empty() {
                 None
             } else { Some(num) }
         } else {
-            let pos = ISLAND_NAMES.iter().position(|it| it.to_owned() == raw_island);
+            let pos = ISLAND_NAMES.iter().position(|it| *it == raw_island);
             if let Some(num) = pos {
-                if raw_island == "" {
+                if raw_island.is_empty() {
                     None
                 } else { Some(num as u8) }
             } else { None }
@@ -183,8 +212,25 @@ fn main() {
         });
         let world = format!("{:02}", island);
 
-        let song = parse::parse(format!("{}/world{}.mid", &data_path, world), &world, &exclude_list, &include_list);
-        if !msm.no_song { write::write(&song, &world, msm.verbose, &data_path, &out_path, msm.tempo, msm.repeat); }
-        if !msm.no_timeline { display::display(&song, &world, &monster_names); }
+        let song = parse::parse(
+            format!("{}/world{}.mid", &data_path, world),
+            &world,
+            &exclude_list,
+            &include_list,
+        );
+        if !msm.no_song {
+            write::write(
+                &song,
+                &world,
+                msm.verbose,
+                &data_path,
+                &out_path,
+                msm.tempo,
+                msm.repeat,
+            );
+        }
+        if !msm.no_timeline {
+            display::display(&song, &world, &monster_names);
+        }
     }
 }

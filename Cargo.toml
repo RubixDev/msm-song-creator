@@ -9,10 +9,10 @@ description = "Tool to create all My Singing Monsters songs and timelines from t
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-midly = "0.5.2"
-hound = "3.4.0"
-regex = "1.5.4"
-serde_json = { version = "1.0.74", features = ["preserve_order"] }
-json_comments = "0.2.0"
-structopt = "0.3.25"
+midly = "0.5.3"
+hound = "3.5.0"
+regex = "1.7.1"
+serde_json = { version = "1.0.94", features = ["preserve_order"] }
+json_comments = "0.2.1"
+structopt = "0.3.26"
 lewton = "0.10.2"
